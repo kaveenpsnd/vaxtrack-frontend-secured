@@ -19,8 +19,8 @@ const LoginPage = () => {
       setIsLoading(true);
       const res = await loginUser(data);
       const { token, ...user } = res.data;
-      setLogin(user, token);
-      toast.success(`Welcome back, ${user.name.split(' ')[0]}!`);
+      setLogin(user);
+      toast.success(`Welcome back, ${user.name ? user.name.split(' ')[0] : 'User'}!`);
       navigate(from, { replace: true });
     } catch (error) {
       const message = error.response?.data?.message || 'Invalid email or password';

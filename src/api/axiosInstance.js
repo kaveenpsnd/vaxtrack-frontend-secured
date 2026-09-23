@@ -3,6 +3,7 @@ import useAuthStore from '../store/useAuthStore';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -11,11 +12,6 @@ const api = axios.create({
 // Add a request interceptor
 api.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
     // If sending FormData, remove the hardcoded JSON Content-Type so the
     // browser can set multipart/form-data with the correct boundary automatically.
     if (config.data instanceof FormData) {
@@ -36,7 +32,7 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Handle unauthorized (e.g., token expired)
+      // Handle unauthorized (e.g., session expired)
       useAuthStore.getState().logout();
     }
     return Promise.reject(error);

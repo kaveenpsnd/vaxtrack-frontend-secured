@@ -5,7 +5,7 @@ import RecordsPage from '../RecordsPage';
 // Mock the auth store - default export
 vi.mock('../../../store/useAuthStore', () => {
   const store = vi.fn();
-  store.getState = vi.fn(() => ({ token: 'test-token' }));
+  store.getState = vi.fn(() => ({ user: null }));
   return { default: store };
 });
 

@@ -17,7 +17,7 @@ const RegisterPage = () => {
       setIsLoading(true);
       const res = await registerUser({ ...data, role: 'Public' });
       const { token, ...user } = res.data;
-      setLogin(user, token);
+      setLogin(user);
       toast.success('Account created! Welcome to VaxTrack.');
       navigate('/dashboard', { replace: true });
     } catch (error) {
