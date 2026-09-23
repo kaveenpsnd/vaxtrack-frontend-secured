@@ -18,8 +18,8 @@ const LoginPage = () => {
     try {
       setIsLoading(true);
       const res = await loginUser(data);
-      const { token, ...user } = res.data;
-      setLogin(user, token);
+      const user = res.data;
+      setLogin(user);
       toast.success(`Welcome back, ${user.name.split(' ')[0]}!`);
       navigate(from, { replace: true });
     } catch (error) {

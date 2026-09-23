@@ -35,8 +35,7 @@ const ProfilePage = () => {
       });
       
       // Sync local store
-      const currentToken = useAuthStore.getState().token;
-      login(data, currentToken);
+      login(data);
     } catch (error) {
       toast.error('Failed to load profile data');
       console.error(error);
@@ -81,8 +80,7 @@ const ProfilePage = () => {
       const updatedUser = res.data;
       
       setProfileData(updatedUser);
-      const currentToken = useAuthStore.getState().token;
-      login(updatedUser, currentToken);
+      login(updatedUser);
       
       toast.success('Profile updated successfully!');
       setIsEditing(false);
