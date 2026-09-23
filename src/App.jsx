@@ -1,9 +1,11 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { MainLayout } from './components/layout';
 import ProtectedRoute from './routes/ProtectedRoute';
 import RoleRoute from './routes/RoleRoute';
 import useAuthStore from './store/useAuthStore';
+import { getProfile } from './api/authApi';
 import {
   // Shared
   NotFoundPage,
@@ -52,6 +54,11 @@ const SideEffectsGateway = () => {
 };
 
 function App() {
+  const checkAuth = useAuthStore((state) => state.checkAuth);
+
+  useEffect(() => {
+    checkAuth(getProfile);
+  }, [checkAuth]);
 
   return (
     <BrowserRouter>
