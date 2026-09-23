@@ -18,7 +18,7 @@ const LoginPage = () => {
     try {
       setIsLoading(true);
       const res = await loginUser(data);
-      const { token, ...user } = res.data;
+      const user = res.data;
       setLogin(user);
       toast.success(`Welcome back, ${user.name ? user.name.split(' ')[0] : 'User'}!`);
       navigate(from, { replace: true });
@@ -35,9 +35,9 @@ const LoginPage = () => {
       <div className="max-w-md w-full space-y-8 bg-card p-8 rounded-xl shadow-lg border border-border">
         <div className="flex flex-col items-center">
           <Link to="/">
-            <img 
-              src="/logo/image.png" 
-              alt="VaxTrack Logo" 
+            <img
+              src="/logo/image.png"
+              alt="VaxTrack Logo"
               className="w-16 h-16 rounded-xl object-contain shadow-sm mb-4"
             />
           </Link>
@@ -65,7 +65,7 @@ const LoginPage = () => {
                   autoComplete="email"
                   className={`pl-10 block w-full sm:text-sm bg-card text-foreground border-border rounded-md focus:ring-primary-500 focus:border-primary-500 p-2.5 border outline-none transition-shadow ${errors.email ? 'border-danger-500 focus:ring-danger-500' : ''}`}
                   placeholder="you@example.com"
-                  {...register('email', { 
+                  {...register('email', {
                     required: 'Email is required',
                     pattern: {
                       value: /\S+@\S+\.\S+/,
@@ -89,7 +89,7 @@ const LoginPage = () => {
                   autoComplete="current-password"
                   className={`pl-10 block w-full sm:text-sm bg-card text-foreground border-border rounded-md focus:ring-primary-500 focus:border-primary-500 p-2.5 border outline-none transition-shadow ${errors.password ? 'border-danger-500 focus:ring-danger-500' : ''}`}
                   placeholder="••••••••"
-                  {...register('password', { 
+                  {...register('password', {
                     required: 'Password is required',
                     minLength: { value: 6, message: 'Minimum length should be 6 characters' }
                   })}

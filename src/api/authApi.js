@@ -19,3 +19,6 @@ export const updateProfile = (data) => api.put('/users/profile', data);
  */
 export const searchPatients = (query) =>
   api.get('/users/search', { params: { q: query } });
+
+// POST /api/users/logout → clear cookie
+export const logoutUser = () => api.post('/users/logout');
