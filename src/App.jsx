@@ -37,8 +37,8 @@ import {
   InventoryDashboard,
   HistoryPage,
 } from './pages';
-import LoginPage    from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
+import LoginPage         from './pages/auth/LoginPage';
+import OAuthCallbackPage  from './pages/auth/OAuthCallbackPage';
 
 /**
  * Gateway component for /dashboard/side-effects.
@@ -81,10 +81,11 @@ function App() {
         <Route path="/" element={<LandingPage />} />
 
         {/* ── Public routes (no auth required) ── */}
-        <Route path="/login"    element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/privacy"  element={<PrivacyPolicyPage />} />
-        <Route path="/terms"    element={<TermsOfServicePage />} />
+        <Route path="/login"          element={<LoginPage />} />
+        <Route path="/register"       element={<Navigate to="/login" replace />} />
+        <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+        <Route path="/privacy"        element={<PrivacyPolicyPage />} />
+        <Route path="/terms"          element={<TermsOfServicePage />} />
 
         {/* ── Protected layout — all authenticated routes live here ── */}
         <Route
