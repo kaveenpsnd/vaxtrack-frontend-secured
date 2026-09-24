@@ -3,7 +3,8 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { 
   FiUser, FiMail, FiPhone, FiMapPin, FiCreditCard, 
-  FiShield, FiEdit2, FiSave, FiX, FiCheckCircle, FiActivity, FiCamera
+  FiShield, FiEdit2, FiSave, FiX, FiCheckCircle, FiActivity, FiCamera,
+  FiLock, FiKey, FiAlertCircle
 } from 'react-icons/fi';
 import useAuthStore from '../../store/useAuthStore';
 import { getProfile, updateProfile } from '../../api/authApi';
@@ -18,20 +19,32 @@ const ProfilePage = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm();
+  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm();
+
+  const watchedEmail = watch('email');
+  const watchedPhone = watch('phone');
+  const watchedPassword = watch('password');
+
+  const isSensitiveChanged = Boolean(
+    (watchedEmail !== undefined && watchedEmail !== (profileData?.email || '')) ||
+    (watchedPhone !== undefined && watchedPhone !== (profileData?.phone || '')) ||
+    (watchedPassword && watchedPassword.trim().length > 0)
+  );
 
   const fetchProfile = async () => {
     try {
       setIsFetching(true);
       const res = await getProfile();
-      // res.data might be the user object depending on axios config
       const data = res.data;
       setProfileData(data);
       reset({
         name: data.name || '',
+        email: data.email || '',
         phone: data.phone || '',
         address: data.address || '',
         nic: data.nic || '',
+        password: '',
+        currentPassword: '',
       });
       
       // Sync local store
@@ -68,10 +81,19 @@ const ProfilePage = () => {
       
       const formData = new FormData();
       formData.append('name', data.name);
+      formData.append('email', data.email);
       formData.append('phone', data.phone);
       formData.append('nic', data.nic);
       formData.append('address', data.address);
       
+      if (data.password && data.password.trim()) {
+        formData.append('password', data.password.trim());
+      }
+      
+      if (data.currentPassword && data.currentPassword.trim()) {
+        formData.append('currentPassword', data.currentPassword.trim());
+      }
+
       if (selectedFile) {
         formData.append('profilePicture', selectedFile);
       }
@@ -86,6 +108,15 @@ const ProfilePage = () => {
       setIsEditing(false);
       setSelectedFile(null);
       setImagePreview(null);
+      reset({
+        name: updatedUser.name || '',
+        email: updatedUser.email || '',
+        phone: updatedUser.phone || '',
+        address: updatedUser.address || '',
+        nic: updatedUser.nic || '',
+        password: '',
+        currentPassword: '',
+      });
     } catch (error) {
       const msg = error.response?.data?.message || 'Failed to update profile';
       toast.error(msg);
@@ -194,7 +225,15 @@ const ProfilePage = () => {
                 <button
                   onClick={() => {
                     if (isEditing) {
-                      reset();
+                      reset({
+                        name: profileData?.name || '',
+                        email: profileData?.email || '',
+                        phone: profileData?.phone || '',
+                        address: profileData?.address || '',
+                        nic: profileData?.nic || '',
+                        password: '',
+                        currentPassword: '',
+                      });
                       setIsEditing(false);
                       setImagePreview(null);
                       setSelectedFile(null);
@@ -246,9 +285,40 @@ const ProfilePage = () => {
                     {errors.name && <p className="text-xs font-bold text-danger-500 ml-1">{errors.name.message}</p>}
                   </div>
 
+                  {/* Email Input (Editable) */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-secondary-600 dark:text-slate-400 uppercase tracking-wider ml-1 flex items-center gap-1.5">
+                      <span>Email Address</span>
+                      <span className="text-xs text-warning-600 dark:text-warning-400 font-medium">(Sensitive)</span>
+                    </label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-secondary-400 group-focus-within:text-primary-500 transition-colors">
+                        <FiMail className="w-5 h-5" />
+                      </div>
+                      <input
+                        type="email"
+                        {...register('email', { 
+                          required: 'Email address is required',
+                          pattern: {
+                            value: /\S+@\S+\.\S+/,
+                            message: 'Invalid email format'
+                          }
+                        })}
+                        className={`w-full pl-12 pr-4 py-4 bg-secondary-50 dark:bg-slate-800/50 border-2 rounded-2xl outline-none transition-all duration-300 ${
+                          errors.email ? 'border-danger-500 ring-danger-500/10' : 'border-transparent focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10'
+                        }`}
+                        placeholder="you@example.com"
+                      />
+                    </div>
+                    {errors.email && <p className="text-xs font-bold text-danger-500 ml-1">{errors.email.message}</p>}
+                  </div>
+
                   {/* Phone Input */}
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-secondary-600 dark:text-slate-400 uppercase tracking-wider ml-1">Contact Number</label>
+                    <label className="text-sm font-bold text-secondary-600 dark:text-slate-400 uppercase tracking-wider ml-1 flex items-center gap-1.5">
+                      <span>Contact Number</span>
+                      <span className="text-xs text-warning-600 dark:text-warning-400 font-medium">(Sensitive)</span>
+                    </label>
                     <div className="relative group">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-secondary-400 group-focus-within:text-primary-500 transition-colors">
                         <FiPhone className="w-5 h-5" />
@@ -284,22 +354,6 @@ const ProfilePage = () => {
                     {errors.nic && <p className="text-xs font-bold text-danger-500 ml-1">{errors.nic.message}</p>}
                   </div>
 
-                  {/* Email (Read Only Visual) */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-bold text-secondary-600 dark:text-slate-400 uppercase tracking-wider ml-1">System Email (Read Only)</label>
-                    <div className="relative opacity-60">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-secondary-400">
-                        <FiMail className="w-5 h-5" />
-                      </div>
-                      <input
-                        type="text"
-                        value={profileData.email}
-                        readOnly
-                        className="w-full pl-12 pr-4 py-4 bg-secondary-100 dark:bg-slate-800 border-2 border-transparent rounded-2xl cursor-not-allowed"
-                      />
-                    </div>
-                  </div>
-
                   {/* Address Input */}
                   <div className="md:col-span-2 space-y-2">
                     <label className="text-sm font-bold text-secondary-600 dark:text-slate-400 uppercase tracking-wider ml-1">Physical Address</label>
@@ -309,7 +363,7 @@ const ProfilePage = () => {
                       </div>
                       <textarea
                         {...register('address', { required: 'Address is required' })}
-                        rows={4}
+                        rows={3}
                         className={`w-full pl-12 pr-4 py-4 bg-secondary-50 dark:bg-slate-800/50 border-2 rounded-2xl outline-none transition-all duration-300 resize-none ${
                           errors.address ? 'border-danger-500 ring-danger-500/10' : 'border-transparent focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10'
                         }`}
@@ -317,6 +371,93 @@ const ProfilePage = () => {
                       />
                     </div>
                     {errors.address && <p className="text-xs font-bold text-danger-500 ml-1">{errors.address.message}</p>}
+                  </div>
+                </div>
+
+                {/* Account Security Section */}
+                <div className="pt-4 border-t border-border/60">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 rounded-2xl bg-primary-500/10 text-primary-600 dark:text-primary-400">
+                      <FiShield className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">Account Security & Authentication</h3>
+                      <p className="text-xs text-secondary-500 dark:text-slate-400">
+                        {isSensitiveChanged 
+                          ? 'Current password is required to save changes to email, phone, or password.'
+                          : 'Change your password or enter current password when modifying sensitive information.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {isSensitiveChanged && (
+                    <div className="mb-6 p-4 rounded-2xl bg-warning-500/10 border border-warning-500/20 text-warning-700 dark:text-warning-300 flex items-start gap-3">
+                      <FiAlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                      <p className="text-sm font-medium">
+                        You have modified sensitive account details. Please enter your <strong>Current Password</strong> below to verify this action.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* New Password Input */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-secondary-600 dark:text-slate-400 uppercase tracking-wider ml-1">
+                        New Password <span className="text-xs font-normal normal-case text-secondary-400">(Optional)</span>
+                      </label>
+                      <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-secondary-400 group-focus-within:text-primary-500 transition-colors">
+                          <FiLock className="w-5 h-5" />
+                        </div>
+                        <input
+                          type="password"
+                          autoComplete="new-password"
+                          {...register('password', {
+                            minLength: {
+                              value: 6,
+                              message: 'New password must be at least 6 characters',
+                            },
+                          })}
+                          className={`w-full pl-12 pr-4 py-4 bg-secondary-50 dark:bg-slate-800/50 border-2 rounded-2xl outline-none transition-all duration-300 ${
+                            errors.password ? 'border-danger-500 ring-danger-500/10' : 'border-transparent focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10'
+                          }`}
+                          placeholder="Leave blank to keep unchanged"
+                        />
+                      </div>
+                      {errors.password && <p className="text-xs font-bold text-danger-500 ml-1">{errors.password.message}</p>}
+                    </div>
+
+                    {/* Current Password Input */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-secondary-600 dark:text-slate-400 uppercase tracking-wider ml-1 flex items-center gap-1.5">
+                        <span>Current Password</span>
+                        {isSensitiveChanged && (
+                          <span className="text-xs text-danger-500 font-bold">* Required</span>
+                        )}
+                      </label>
+                      <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-secondary-400 group-focus-within:text-primary-500 transition-colors">
+                          <FiKey className="w-5 h-5" />
+                        </div>
+                        <input
+                          type="password"
+                          autoComplete="current-password"
+                          {...register('currentPassword', {
+                            validate: (val) => {
+                              if (isSensitiveChanged && (!val || !val.trim())) {
+                                return 'Current password is required to update sensitive information.';
+                              }
+                              return true;
+                            },
+                          })}
+                          className={`w-full pl-12 pr-4 py-4 bg-secondary-50 dark:bg-slate-800/50 border-2 rounded-2xl outline-none transition-all duration-300 ${
+                            errors.currentPassword ? 'border-danger-500 ring-danger-500/10' : 'border-transparent focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10'
+                          }`}
+                          placeholder="Enter your current password"
+                        />
+                      </div>
+                      {errors.currentPassword && <p className="text-xs font-bold text-danger-500 ml-1">{errors.currentPassword.message}</p>}
+                    </div>
                   </div>
                 </div>
 
