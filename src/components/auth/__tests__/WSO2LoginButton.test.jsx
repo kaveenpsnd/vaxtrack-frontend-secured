@@ -1,31 +1,19 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import WSO2LoginButton from '../WSO2LoginButton';
 
-// Mock @asgardeo/auth-react
-const mockSignIn = vi.fn();
-let mockState = { isLoading: false, isAuthenticated: false };
-
-vi.mock('@asgardeo/auth-react', () => ({
-  useAuthContext: () => ({
-    signIn: mockSignIn,
-    state: mockState,
-  }),
-}));
-
-// Mock react-hot-toast
-vi.mock('react-hot-toast', () => ({
-  default: {
-    error: vi.fn(),
-    success: vi.fn(),
-  },
-}));
-
 describe('WSO2LoginButton', () => {
+  const originalLocation = window.location;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    mockState = { isLoading: false, isAuthenticated: false };
+    delete window.location;
+    window.location = { href: '' };
+  });
+
+  afterEach(() => {
+    window.location = originalLocation;
   });
 
   it('renders with default label', () => {
@@ -38,19 +26,10 @@ describe('WSO2LoginButton', () => {
     expect(screen.getByRole('button', { name: /sign up with wso2 identity server/i })).toBeInTheDocument();
   });
 
-  it('calls signIn when clicked', async () => {
-    mockSignIn.mockResolvedValueOnce({});
+  it('redirects to backend SSO endpoint when clicked', () => {
     render(<WSO2LoginButton />);
     const button = screen.getByRole('button', { name: /sign in with wso2/i });
     fireEvent.click(button);
-    expect(mockSignIn).toHaveBeenCalledTimes(1);
-  });
-
-  it('shows loading spinner and disables button when loading', () => {
-    mockState = { isLoading: true, isAuthenticated: false };
-    render(<WSO2LoginButton />);
-    const button = screen.getByRole('button');
-    expect(button).toBeDisabled();
-    expect(screen.getByText(/connecting to wso2/i)).toBeInTheDocument();
+    expect(window.location.href).toContain('/auth/wso2/login');
   });
 });

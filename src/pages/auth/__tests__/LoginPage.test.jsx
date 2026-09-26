@@ -1,61 +1,46 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 import LoginPage from '../LoginPage';
 
-const mockSignIn = vi.fn();
-
-vi.mock('@asgardeo/auth-react', () => ({
-  useAuthContext: () => ({
-    signIn: mockSignIn,
-  }),
-}));
-
-vi.mock('react-hot-toast', () => ({
-  default: {
-    error: vi.fn(),
-    success: vi.fn(),
-  },
-}));
-
 describe('LoginPage', () => {
+  const originalLocation = window.location;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    delete window.location;
+    window.location = { href: '', search: '' };
   });
 
-  it('automatically triggers WSO2 signIn on mount', async () => {
-    mockSignIn.mockResolvedValueOnce({});
+  afterEach(() => {
+    window.location = originalLocation;
+  });
+
+  it('automatically redirects to WSO2 backend login URL when no error exists', () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/login']}>
         <LoginPage />
       </MemoryRouter>
     );
 
     expect(screen.getByText(/sign in with wso2 identity server/i)).toBeInTheDocument();
     expect(screen.getByText(/redirecting to wso2 identity server/i)).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(mockSignIn).toHaveBeenCalledTimes(1);
-    });
+    expect(window.location.href).toContain('/auth/wso2/login');
   });
 
-  it('displays error and retry button if redirect fails', async () => {
-    mockSignIn.mockRejectedValueOnce(new Error('Connection to Identity Server refused'));
+  it('displays user-friendly error message when sso_error is in search params', () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/login?sso_error=denied']}>
         <LoginPage />
       </MemoryRouter>
     );
 
-    await waitFor(() => {
-      expect(screen.getByText(/connection to identity server refused/i)).toBeInTheDocument();
-    });
-
+    expect(screen.getByText(/authentication was cancelled or access was denied/i)).toBeInTheDocument();
     const retryBtn = screen.getByRole('button', { name: /retry wso2 sign in/i });
     expect(retryBtn).toBeInTheDocument();
 
     fireEvent.click(retryBtn);
-    expect(mockSignIn).toHaveBeenCalledTimes(2);
+    expect(window.location.href).toContain('/auth/wso2/login');
   });
 });
