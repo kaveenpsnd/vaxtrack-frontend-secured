@@ -23,3 +23,15 @@ export const updateProfile = (data) => api.put('/users/profile', data);
  */
 export const searchPatients = (query) =>
   api.get('/users/search', { params: { q: query } });
+
+// POST /api/auth/wso2/logout → { success: true, logoutUrl }
+export const logoutWso2 = () => api.post('/auth/wso2/logout');
+
+/**
+ * Returns the backend WSO2 SSO initiation endpoint URL
+ */
+export const getWso2LoginUrl = () => {
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  return `${baseUrl.replace(/\/$/, '')}/auth/wso2/login`;
+};
+
