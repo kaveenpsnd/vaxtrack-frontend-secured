@@ -1,75 +1,48 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthContext } from '@asgardeo/auth-react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../store/useAuthStore';
+import { getProfile } from '../../api/authApi';
 
 /**
- * OAuthCallbackPage handles redirect from WSO2 Identity Server / Asgardeo.
- * @asgardeo/auth-react automatically parses the authorization code and completes PKCE exchange.
- * Once verified, user profile is synchronized with useAuthStore with role forced to 'Public'.
+ * OAuthCallbackPage handles redirect after backend WSO2 token exchange.
+ * The backend sets the session cookie and redirects here.
+ * This component verifies the session via getProfile() and enters the dashboard.
  */
 const OAuthCallbackPage = () => {
-  const { state, getBasicUserInfo, error } = useAuthContext();
   const navigate = useNavigate();
-  const setLogin = useAuthStore((s) => s.login);
-  const [isProcessing, setIsProcessing] = useState(true);
+  const checkAuth = useAuthStore((s) => s.checkAuth);
 
   useEffect(() => {
     let isMounted = true;
 
-    const handleCallback = async () => {
-      // If Asgardeo reports an error
-      if (error) {
-        console.error('Asgardeo auth callback error:', error);
-        toast.error(error?.message || 'Authentication with WSO2 Identity Server failed.');
-        navigate('/login', { replace: true });
-        return;
-      }
+    const establishSession = async () => {
+      try {
+        const user = await checkAuth(getProfile);
+        if (!isMounted) return;
 
-      // Check if Asgardeo has completed authentication
-      if (state.isAuthenticated) {
-        try {
-          const userInfo = await getBasicUserInfo();
-          if (!isMounted) return;
-
-          const wso2User = {
-            _id: userInfo.sub || `wso2-${Date.now()}`,
-            name: userInfo.displayName || userInfo.username || 'WSO2 User',
-            email: userInfo.email || userInfo.username || 'wso2@vaxtrack.local',
-            // Assignment Security Requirement: Role must always be forced to Public on client SSO
-            role: 'Public',
-            authProvider: 'wso2',
-          };
-
-          setLogin(wso2User);
-          toast.success(`Welcome to VaxTrack, ${wso2User.name.split(' ')[0]}!`);
+        if (user) {
+          toast.success(`Welcome to VaxTrack, ${user.name?.split(' ')[0] || 'User'}!`);
           navigate('/dashboard', { replace: true });
-        } catch (err) {
-          console.error('Error fetching WSO2 user info:', err);
-          if (isMounted) {
-            toast.error('Failed to retrieve user profile from WSO2.');
-            navigate('/login', { replace: true });
-          }
-        } finally {
-          if (isMounted) setIsProcessing(false);
+        } else {
+          toast.error('Failed to establish session from WSO2 login.');
+          navigate('/login?sso_error=session', { replace: true });
         }
-      } else if (!state.isLoading) {
-        // If not loading and not authenticated, check if code param exists in URL
-        const params = new URLSearchParams(window.location.search);
-        if (!params.get('code') && !params.get('session_state')) {
-          // No auth code present, redirect back to login
-          navigate('/login', { replace: true });
+      } catch (err) {
+        console.error('Session establishment error:', err);
+        if (isMounted) {
+          toast.error('An error occurred while establishing your session.');
+          navigate('/login?sso_error=session', { replace: true });
         }
       }
     };
 
-    handleCallback();
+    establishSession();
 
     return () => {
       isMounted = false;
     };
-  }, [state.isAuthenticated, state.isLoading, error, getBasicUserInfo, navigate, setLogin]);
+  }, [checkAuth, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
@@ -87,10 +60,10 @@ const OAuthCallbackPage = () => {
 
         <div>
           <h2 className="text-xl font-bold text-foreground">
-            Verifying with WSO2 Identity Server
+            Completing WSO2 Authentication
           </h2>
           <p className="mt-2 text-sm text-secondary-500 dark:text-slate-400">
-            Completing OpenID Connect verification and establishing your secure session...
+            Establishing your secure session and preparing your dashboard...
           </p>
         </div>
 

@@ -1,27 +1,17 @@
 import React, { useState } from 'react';
-import { useAuthContext } from '@asgardeo/auth-react';
-import toast from 'react-hot-toast';
+import { getWso2LoginUrl } from '../../api/authApi';
 
 /**
- * WSO2 Identity Server / Asgardeo Sign-In button
- * Triggers the OIDC authorization code flow with PKCE via @asgardeo/auth-react
+ * WSO2 Identity Server Sign-In button
+ * Redirects to backend SSO initiation endpoint (/api/auth/wso2/login)
  */
 export const WSO2LoginButton = ({ label = 'Sign in with WSO2', className = '' }) => {
-  const { signIn, state } = useAuthContext();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSignIn = async () => {
-    try {
-      setIsSubmitting(true);
-      await signIn();
-    } catch (err) {
-      console.error('WSO2 sign-in error:', err);
-      toast.error(err?.message || 'Failed to initialize WSO2 sign-in. Please try again.');
-      setIsSubmitting(false);
-    }
+  const handleSignIn = () => {
+    setLoading(true);
+    window.location.href = getWso2LoginUrl();
   };
-
-  const loading = isSubmitting || state?.isLoading;
 
   return (
     <button
@@ -29,7 +19,7 @@ export const WSO2LoginButton = ({ label = 'Sign in with WSO2', className = '' })
       onClick={handleSignIn}
       disabled={loading}
       aria-label={label}
-      className={`w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-medium text-sm hover:bg-slate-50 dark:hover:bg-slate-700/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed ${className}`}
+      className={`w-full flex items-center justify-center gap-3 px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-medium text-sm hover:bg-slate-50 dark:hover:bg-slate-700/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer ${className}`}
     >
       {loading ? (
         <>

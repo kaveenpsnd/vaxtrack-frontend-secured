@@ -1,37 +1,41 @@
-import React, { useEffect, useState } from 'react';
-import { useAuthContext } from '@asgardeo/auth-react';
-import { Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import React, { useEffect, useMemo } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { getWso2LoginUrl } from '../../api/authApi';
+
+const ERROR_MESSAGES = {
+  denied: 'Authentication was cancelled or access was denied by WSO2 Identity Server.',
+  unverified: 'Your email address has not been verified by WSO2. Please verify your email to proceed.',
+  state: 'Single sign-on session expired or security state mismatch. Please try again.',
+  account: 'Account synchronization error. Please contact the administrator.',
+  token: 'Failed to negotiate authorization tokens with WSO2 Identity Server.',
+  verify: 'ID token verification failed against WSO2 Identity Server keys.',
+  nonce: 'Security nonce mismatch detected during authentication.',
+  server: 'An internal server error occurred during WSO2 authentication.',
+};
 
 /**
  * LoginPage: All authentication is delegated entirely and exclusively
- * to the WSO2 Identity Server / Asgardeo OIDC endpoint.
- * No local credential input form is displayed.
+ * to WSO2 Identity Server via the backend confidential client flow.
  */
 const LoginPage = () => {
-  const { signIn } = useAuthContext();
-  const [error, setError] = useState(null);
+  const [searchParams] = useSearchParams();
+  const ssoError = searchParams.get('sso_error');
+
+  const errorMessage = useMemo(() => {
+    if (!ssoError) return null;
+    return ERROR_MESSAGES[ssoError] || `Single sign-on failed (${ssoError}). Please try again.`;
+  }, [ssoError]);
+
+  const handleSignIn = () => {
+    window.location.href = getWso2LoginUrl();
+  };
 
   useEffect(() => {
-    let isMounted = true;
-
-    const initiateSignIn = async () => {
-      try {
-        await signIn();
-      } catch (err) {
-        if (!isMounted) return;
-        console.error('WSO2 sign-in initiation error:', err);
-        setError(err?.message || 'Could not redirect to WSO2 Identity Server.');
-        toast.error('Failed to redirect to WSO2 Identity Server');
-      }
-    };
-
-    initiateSignIn();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [signIn]);
+    // Only redirect automatically if there isn't an active error to display
+    if (!ssoError) {
+      handleSignIn();
+    }
+  }, [ssoError]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -52,23 +56,25 @@ const LoginPage = () => {
             Sign in with WSO2 Identity Server
           </h2>
           <p className="text-sm text-secondary-500 dark:text-slate-400">
-            Redirecting to WSO2 Identity Server to authenticate securely...
+            {errorMessage 
+              ? 'There was an issue authenticating with your identity provider.' 
+              : 'Redirecting to WSO2 Identity Server to authenticate securely...'}
           </p>
         </div>
 
-        {error ? (
+        {errorMessage ? (
           <div className="space-y-4">
-            <p className="text-sm text-danger-500 dark:text-danger-400 bg-danger-50 dark:bg-danger-950/40 p-3 rounded-lg border border-danger-200 dark:border-danger-800">
-              {error}
+            <p className="text-sm text-danger-600 dark:text-danger-400 bg-danger-50 dark:bg-danger-950/40 p-3.5 rounded-xl border border-danger-200 dark:border-danger-800 text-left">
+              {errorMessage}
             </p>
             <button
               type="button"
-              onClick={() => signIn()}
-              className="w-full py-2.5 px-4 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-medium text-sm transition-all shadow-sm"
+              onClick={handleSignIn}
+              className="w-full py-2.5 px-4 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-medium text-sm transition-all shadow-sm cursor-pointer"
             >
               Retry WSO2 Sign In
             </button>
-            <Link to="/" className="block text-xs text-primary-600 hover:underline">
+            <Link to="/" className="block text-xs text-primary-600 dark:text-primary-400 hover:underline">
               Return to Home
             </Link>
           </div>
@@ -77,7 +83,7 @@ const LoginPage = () => {
             <div className="w-12 h-12 rounded-full border-4 border-primary-200 border-t-primary-600 animate-spin"></div>
             <button
               type="button"
-              onClick={() => signIn()}
+              onClick={handleSignIn}
               className="text-xs text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
             >
               Click here if you are not redirected automatically
