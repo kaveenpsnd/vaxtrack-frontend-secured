@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
-import { getWso2LoginUrl } from '../../api/authApi';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { consumeLoggedOut, getWso2LoginUrl } from '../../api/authApi';
 
 const ERROR_MESSAGES = {
   denied: 'Authentication was cancelled or access was denied by WSO2 Identity Server.',
@@ -19,6 +19,7 @@ const ERROR_MESSAGES = {
  */
 const LoginPage = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const ssoError = searchParams.get('sso_error');
 
   const errorMessage = useMemo(() => {
@@ -30,12 +31,23 @@ const LoginPage = () => {
     window.location.href = getWso2LoginUrl();
   };
 
+  // Run the auto-redirect once, even though StrictMode runs effects twice in dev.
+  const hasAutoRedirected = useRef(false);
+
   useEffect(() => {
+    if (hasAutoRedirected.current) return;
+    hasAutoRedirected.current = true;
+
+    // Just logged out of WSO2: go to the landing page instead of signing in again.
+    if (consumeLoggedOut()) {
+      navigate('/', { replace: true });
+      return;
+    }
     // Only redirect automatically if there isn't an active error to display
     if (!ssoError) {
       handleSignIn();
     }
-  }, [ssoError]);
+  }, [ssoError, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">

@@ -27,6 +27,29 @@ export const searchPatients = (query) =>
 // POST /api/auth/wso2/logout → { success: true, logoutUrl }
 export const logoutWso2 = () => api.post('/auth/wso2/logout');
 
+// After WSO2 logout the browser returns to /login, which would immediately
+// start a new sign-in. This one-shot flag lets LoginPage send the user to the
+// landing page instead. sessionStorage can throw (private mode), so guard it.
+const LOGGED_OUT_KEY = 'vaxtrack_logged_out';
+
+export const markLoggedOut = () => {
+  try {
+    sessionStorage.setItem(LOGGED_OUT_KEY, '1');
+  } catch {
+    // Storage unavailable: /login will just start a fresh sign-in.
+  }
+};
+
+export const consumeLoggedOut = () => {
+  try {
+    const wasLoggedOut = sessionStorage.getItem(LOGGED_OUT_KEY) === '1';
+    sessionStorage.removeItem(LOGGED_OUT_KEY);
+    return wasLoggedOut;
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Returns the backend WSO2 SSO initiation endpoint URL
  */
