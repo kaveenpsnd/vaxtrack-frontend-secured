@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FiMenu, FiBell, FiUser, FiLogOut, FiMoon, FiSun } from 'react-icons/fi';
 import useAuthStore from '../../store/useAuthStore';
-import { logoutWso2 } from '../../api/authApi';
+import { logoutWso2, markLoggedOut } from '../../api/authApi';
 
 
 
@@ -57,6 +57,8 @@ const Navbar = ({ toggleSidebar, user = { name: 'John Doe', role: 'Patient' } })
     try {
       const res = await logoutWso2();
       if (res?.data?.logoutUrl) {
+        // WSO2 returns the browser to /login; the flag stops it auto-signing in again.
+        markLoggedOut();
         window.location.href = res.data.logoutUrl;
         return;
       }
@@ -64,7 +66,7 @@ const Navbar = ({ toggleSidebar, user = { name: 'John Doe', role: 'Patient' } })
       console.warn('WSO2 logout failed, falling back to local logout', err);
     }
     await logout();
-    navigate('/login', { replace: true });
+    navigate('/', { replace: true });
   };
 
   return (

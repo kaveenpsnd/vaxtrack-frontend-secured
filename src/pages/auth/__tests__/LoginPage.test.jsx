@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import React from 'react';
 import LoginPage from '../LoginPage';
 
@@ -42,5 +42,22 @@ describe('LoginPage', () => {
 
     fireEvent.click(retryBtn);
     expect(window.location.href).toContain('/auth/wso2/login');
+  });
+
+  it('goes to the landing page instead of signing in again right after logout', () => {
+    sessionStorage.setItem('vaxtrack_logged_out', '1');
+
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <Routes>
+          <Route path="/" element={<p>Landing</p>} />
+          <Route path="/login" element={<LoginPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Landing')).toBeInTheDocument();
+    expect(window.location.href).toBe('');
+    expect(sessionStorage.getItem('vaxtrack_logged_out')).toBeNull();
   });
 });
