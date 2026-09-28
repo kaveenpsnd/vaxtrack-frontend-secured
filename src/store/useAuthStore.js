@@ -1,19 +1,36 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { logoutUser as logoutApi } from '../api/authApi';
 
-const useAuthStore = create(
-  persist(
-    (set) => ({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-      login: (user, token) => set({ user, token, isAuthenticated: true }),
-      logout: () => set({ user: null, token: null, isAuthenticated: false }),
-    }),
-    {
-      name: 'auth-storage', // Key for localStorage
+if (typeof window !== 'undefined') {
+  localStorage.removeItem('auth-storage');
+}
+
+const useAuthStore = create((set) => ({
+  user: null,
+  isAuthenticated: false,
+  isCheckingAuth: true,
+  login: (user) => set({ user, isAuthenticated: true, isCheckingAuth: false }),
+  logout: async () => {
+    try {
+      await logoutApi();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      set({ user: null, isAuthenticated: false, isCheckingAuth: false });
     }
-  )
-);
+  },
+  checkAuth: async (getProfileFunc) => {
+    try {
+      const res = await getProfileFunc();
+      const user = res.data;
+      if (user) {
+        set({ user, isAuthenticated: true, isCheckingAuth: false });
+        return user;
+      }
+    } catch (error) {
+      set({ user: null, isAuthenticated: false, isCheckingAuth: false });
+    }
+  },
+}));
 
 export default useAuthStore;

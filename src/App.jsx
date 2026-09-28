@@ -1,9 +1,11 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { MainLayout } from './components/layout';
 import ProtectedRoute from './routes/ProtectedRoute';
 import RoleRoute from './routes/RoleRoute';
 import useAuthStore from './store/useAuthStore';
+import { getProfile } from './api/authApi';
 import {
   // Shared
   NotFoundPage,
@@ -35,8 +37,8 @@ import {
   InventoryDashboard,
   HistoryPage,
 } from './pages';
-import LoginPage    from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
+import LoginPage         from './pages/auth/LoginPage';
+import OAuthCallbackPage  from './pages/auth/OAuthCallbackPage';
 
 /**
  * Gateway component for /dashboard/side-effects.
@@ -52,6 +54,11 @@ const SideEffectsGateway = () => {
 };
 
 function App() {
+  const checkAuth = useAuthStore((state) => state.checkAuth);
+
+  useEffect(() => {
+    checkAuth(getProfile);
+  }, [checkAuth]);
 
   return (
     <BrowserRouter>
@@ -74,10 +81,11 @@ function App() {
         <Route path="/" element={<LandingPage />} />
 
         {/* ── Public routes (no auth required) ── */}
-        <Route path="/login"    element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/privacy"  element={<PrivacyPolicyPage />} />
-        <Route path="/terms"    element={<TermsOfServicePage />} />
+        <Route path="/login"          element={<LoginPage />} />
+        <Route path="/register"       element={<Navigate to="/login" replace />} />
+        <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+        <Route path="/privacy"        element={<PrivacyPolicyPage />} />
+        <Route path="/terms"          element={<TermsOfServicePage />} />
 
         {/* ── Protected layout — all authenticated routes live here ── */}
         <Route
